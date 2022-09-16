@@ -6,7 +6,7 @@ from classes import *
 from conversions import *
 
 ''' drawOrbit:
-Find the points of an orbit given initial and final true anomaly and draw it in the 3D space.
+Find the points of an orbit given initial and final true anomaly and draw it in the 3D space without any perturbations added (no ODE)
 Input:
 - keplerian_elements_initial : KeplerianElements object
 - keplerian_elements_final : KeplerianElements object
@@ -45,6 +45,5 @@ def drawOrbit(keplerian_elements, theta_initial, theta_final):
         cont = cont + theta_step
     
     axes.plot3D(X, Y, Z)
-
     plot.show()
 
