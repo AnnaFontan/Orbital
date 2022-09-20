@@ -4,56 +4,79 @@ from classes import *
 from conversions import *
 
 ''' noPerturbations
-Function to integrate in order to obtain the position vector in time of an orbit
+Function to integrate in order to obtain the position vector in time of an orbit without considering any perturbation
 Input:
-    position : [position vector, velocity_vector] [km]
+    vector : [position vector, velocity_vector] [km]
     gravitational_parameter
 Output: 
     first derivatives of the input vector
 '''
 def noPerturbations(t, vector, gravitational_parameter):
 
-    position_norm = np.linalg.norm(vector[0:3])
+    position = Cartesian(vector[0], vector[1], vector[2], gravitational_parameter)
+    velocity = Cartesian(vector[3], vector[4], vector[5], gravitational_parameter)
     
-    A11 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-    A12 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    A1 = np.concatenate((A11, A12), axis = 1)
+    dd_r = (- gravitational_parameter/(position.normalise()**3) * vector[0:3])
+    d_r = velocity.vector()
+    output = np.concatenate((d_r, dd_r), axis = 0)
 
-    coeff = -gravitational_parameter/position_norm**3
-    A21 = [[coeff, 0, 0], [0, coeff, 0], [0, 0, coeff]]
-    A22 = A11
-    A2 = np.concatenate((A21, A22), axis = 1)
-        
-    matrix = np.concatenate((A1, A2), axis = 0)
-            
-    return matrix @ vector
+    return output
 
 
-def J2perturbation(t, vector, gravitational_parameter):
+''' perturbations
+Function to integrate in order to obtain the position vector in time of an orbit, considering the J2, drag perturbations
+Input:
+    vector : [position vector, velocity_vector] [km]
+    gravitational_parameter
+Output: 
+    first derivatives of the input vector
+'''
+def perturbations(t, vector, gravitational_parameter):
+
+    position = Cartesian(vector[0], vector[1], vector[2], gravitational_parameter)
+    velocity = Cartesian(vector[3], vector[4], vector[5], gravitational_parameter)
+    
+    acceleration = (- gravitational_parameter/(position.normalise()**3) * vector[0:3])
+    d_r = velocity.vector()
+
+    J2_perturbation = J2Perturbation(t, vector, gravitational_parameter)
+    drag_perturbation = dragPerturbation(t, vector, gravitational_parameter)
+
+    dd_r = acceleration + J2_perturbation + drag_perturbation
+
+    output = np.concatenate((d_r, dd_r), axis = 0)
+    return output
+
+
+def J2Perturbation(t, vector, gravitational_parameter):
 
     J2 = astroConstants(33)
     radius_earth = astroConstants(23)
 
     position = Cartesian(vector[0], vector[1], vector[2], gravitational_parameter)
+
+    K = 3/2*J2*gravitational_parameter * radius_earth**2/(position.normalise()**5)
+    pert_i = K * vector[0] * (5*(vector[2]/position.normalise())**2 - 1)
+    pert_j = K * vector[1] * (5*(vector[2]/position.normalise())**2 - 1)
+    pert_k = K * vector[2] * (5*(vector[2]/position.normalise())**2 - 3)
+    
+    J2_perturbation = [pert_i, pert_j, pert_k] # ECI reference frame
+    return J2_perturbation
+
+
+def dragPerturbation(t, vector, gravitational_parameter):
+
+    position = Cartesian(vector[0], vector[1], vector[2], gravitational_parameter)
     velocity = Cartesian(vector[3], vector[4], vector[5], gravitational_parameter)
-    keplerian_elements = car2kep(position, velocity)
 
-    A11 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-    A12 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-    A1 = np.concatenate((A11, A12), axis = 1)
+    angular_velocity_Earth = np.dot( 2*np.pi*(1 + 1/365.26)/(3600*24), [0, 0, 1]) # [rad/s] if the atmosphere rotates with Earth
+    atmosphere_velocity = np.cross(angular_velocity_Earth, position.vector())
+    relative_velocity = velocity.vector() - atmosphere_velocity
+    relative_velocity_norm = np.linalg.norm([relative_velocity[0], relative_velocity[1], relative_velocity[2]])
 
-    coeff = -gravitational_parameter/position.normalise()**3
+    ballistic_coefficient = 2.2 * (0.4**2)/150 * 1e-6 # C_D*A/m [km**2/kg] 
+    atmospheric_density = atmosphereDensityEarth(position) # [km/km**3]
 
-    K = -3*gravitational_parameter/(2*position.normalise()**3) * J2 * (radius_earth / position.normalise())**2
-    omega_hat = keplerian_elements.omega + keplerian_elements.theta
-    p_r = K * (1 - 3*(np.sin(keplerian_elements.i))**2 * (np.sin(omega_hat))**2)
-    p_n = K * (np.sin(keplerian_elements.i))**2 * np.sin(2*omega_hat)
-    p_h = K * np.sin(2*keplerian_elements.i) * np.sin(omega_hat)
+    drag_perturbation = np.dot(- 1/2 * atmospheric_density * relative_velocity_norm * ballistic_coefficient, relative_velocity)
 
-    A21 = [[coeff + p_r, 0, 0], [0, coeff + p_n, 0], [0, 0, coeff + p_h]]
-    A22 = A11
-    A2 = np.concatenate((A21, A22), axis = 1)
-        
-    matrix = np.concatenate((A1, A2), axis = 0)
-            
-    return matrix @ vector
+    return drag_perturbation

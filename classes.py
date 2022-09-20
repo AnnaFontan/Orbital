@@ -32,6 +32,9 @@ class KeplerianElements:
         self.omega = omega
         self.theta = theta
         self.mu = mu
+        self.r_a = a * (1 + e)
+        self.r_p = a * (1 - e)
+        self.period = 2*np.pi * np.sqrt(a**3/mu)
 
 class CartesianElements:
     def __init__(self, position, velocity):
