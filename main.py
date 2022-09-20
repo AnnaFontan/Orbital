@@ -27,13 +27,13 @@ if __name__ == '__main__':
 
     # Integration of the ordinary differential equation
     t0 = 24*3600 * date2J2000(2020, 9, 3, 12, 0, 0)  # [s] launch date
-    t1 = t0 + 5*keplerian_elements.period # 1*24*3600 # 1.5 * period # [s]
+    t1 = t0 + 20*keplerian_elements.period # 1*24*3600 # 1.5 * period # [s]
     delta_t = 1 # [s]
     N = round( (t1 - delta_t - t0)/delta_t )
     y0 = np.concatenate((position.vector(), velocity.vector()), axis = 0) # initial state
     
     solver = ode(perturbations) # noPerturbations
-    solver.set_integrator('dop853')
+    solver.set_integrator('RK45') # dop853
     solver.set_f_params(gravitational_parameter)
     solver.set_initial_value(y0, t0)
 
@@ -45,6 +45,16 @@ if __name__ == '__main__':
     raan = [keplerian_elements.raan]
     omega = [keplerian_elements.omega]
     theta = [keplerian_elements.theta]
+
+    v1 = J2Perturbation(t0, y0, gravitational_parameter)
+    v2 = dragPerturbation(t0, y0, gravitational_parameter)
+    v3 = SRPPerturbation(t0, y0, gravitational_parameter)
+    v4 = moonPerturbation(t0, y0, gravitational_parameter)
+
+    p1 = [np.linalg.norm([v1[0], v1[1], v1[2]])]
+    p2 = [np.linalg.norm([v2[0], v2[1], v2[2]])]
+    p3 = [np.linalg.norm([v3[0], v3[1], v3[2]])]
+    p4 = [np.linalg.norm([v4[0], v4[1], v4[2]])]
 
     k = 1
     while solver.successful() and solver.t < t1:
@@ -65,6 +75,16 @@ if __name__ == '__main__':
         omega.append(keplerian_elements_steps.omega)
         theta.append(keplerian_elements_steps.theta)
 
+        v1 = J2Perturbation(solver.t, solver.y, gravitational_parameter)
+        v2 = dragPerturbation(solver.t, solver.y, gravitational_parameter)
+        v3 = SRPPerturbation(solver.t, solver.y, gravitational_parameter)
+        v4 = moonPerturbation(solver.t, solver.y, gravitational_parameter)
+
+        p1.append(np.linalg.norm([v1[0], v1[1], v1[2]]))
+        p2.append(np.linalg.norm([v2[0], v2[1], v2[2]]))
+        p3.append(np.linalg.norm([v3[0], v3[1], v3[2]]))
+        p4.append(np.linalg.norm([v4[0], v4[1], v4[2]]))
+
         k += 1
         
     a = np.array(a)
@@ -82,7 +102,7 @@ if __name__ == '__main__':
     VY = sol[0:N, 4]
     VZ = sol[0:N, 5]
 
-    '''
+    
     plot.figure(figsize=(6,5))
     axes = plot.axes(projection='3d')
     print(type(axes))
@@ -94,37 +114,64 @@ if __name__ == '__main__':
     plot.show()
     plot.grid(True)
     # plot.legend()
-    '''
+    
 
+    plot.figure(figsize=(6,5))
     plot.subplot(2, 3, 1)
-    plot.plot(time/3600, a)
+    plot.plot((time - t0)/3600, a)
     plot.xlabel('Time [hrs]')
     plot.ylabel('Semi-major axis [km]')
 
     plot.subplot(2, 3, 2)
-    plot.plot(time/3600, e)
+    plot.plot((time - t0)/3600, e)
     plot.xlabel('Time [hrs]')
     plot.ylabel('Eccentricity [adim]')
 
     plot.subplot(2, 3, 3)
-    plot.plot(time/3600, i*180/np.pi)
+    plot.plot((time - t0)/3600, i*180/np.pi)
     plot.xlabel('Time [hrs]')
     plot.ylabel('Inclination [deg]')
 
     plot.subplot(2, 3, 4)
-    plot.plot(time/3600, raan*180/np.pi)
+    plot.plot((time - t0)/3600, raan*180/np.pi)
     plot.xlabel('Time [hrs]')
     plot.ylabel('RAAN [deg]')
 
     plot.subplot(2, 3, 5)
-    plot.plot(time/3600, omega*180/np.pi)
+    plot.plot((time - t0)/3600, omega*180/np.pi)
     plot.xlabel('Time [hrs]')
     plot.ylabel('Argument of the perigee [deg]')
 
     plot.subplot(2, 3, 6)
-    plot.plot(time/3600, theta*180/np.pi)
+    plot.plot((time - t0)/3600, theta*180/np.pi)
     plot.xlabel('Time [hrs]')
     plot.ylabel('True anomaly [deg]')
+
+    plot.tight_layout()
+    plot.show()
+
+
+
+    plot.figure(figsize=(6,5))
+    plot.subplot(2, 2, 1)
+    plot.plot((time - t0)/3600, p1)
+    plot.xlabel('Time [hrs]')
+    plot.ylabel('J2')
+
+    plot.subplot(2, 2, 2)
+    plot.plot((time - t0)/3600, p2)
+    plot.xlabel('Time [hrs]')
+    plot.ylabel('Drag')
+
+    plot.subplot(2, 2, 3)
+    plot.plot((time - t0)/3600, p3)
+    plot.xlabel('Time [hrs]')
+    plot.ylabel('SRP')
+
+    plot.subplot(2, 2, 4)
+    plot.plot((time - t0)/3600, p4)
+    plot.xlabel('Time [hrs]')
+    plot.ylabel('Moon')
 
     plot.tight_layout()
     plot.show()

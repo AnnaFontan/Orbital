@@ -42,8 +42,9 @@ def perturbations(t, vector, gravitational_parameter):
     J2_perturbation = J2Perturbation(t, vector, gravitational_parameter)
     drag_perturbation = dragPerturbation(t, vector, gravitational_parameter)
     SRP_perturbation = SRPPerturbation(t, vector, gravitational_parameter)
+    moon_perturbation = moonPerturbation(t, vector, gravitational_parameter)
 
-    dd_r = acceleration + (J2_perturbation + drag_perturbation + SRP_perturbation)
+    dd_r = acceleration + (J2_perturbation + drag_perturbation + SRP_perturbation + moon_perturbation)
 
     output = np.concatenate((d_r, dd_r), axis = 0)
     return output
@@ -100,9 +101,6 @@ def SRPPerturbation(t, vector, gravitational_parameter):
     JD = t/(3600*24) # [days] Julian date
     n = JD - 2451545 # [days] number of days since J2000
 
-    if (n < 0):
-        print('Cazzo ;)')
-
     L = np.pi/180 * (280.459 + 0.98564736*n) # [rad] mean longitude Sun
     while (L < 0):
         L = L + 2*np.pi
@@ -110,10 +108,6 @@ def SRPPerturbation(t, vector, gravitational_parameter):
         L = L - 2*np.pi
 
     M = np.pi/180 * (357.529 + 0.98560023*n) # [rad] mean anomaly Sun
-    while (M < 0):
-        M = M + 2*np.pi
-    while (M > 2*np.pi):
-        M = M - 2*np.pi   
 
     lambdaSun = np.pi/180 * (180/np.pi*L + 1.915*np.sin(M) + 0.02*np.sin(2*M)) # [rad] solar ecliptic longitude
     epsilon = np.pi/180 * (23.439 - 3.56*n*1e-7) # [rad] obliquity
@@ -133,3 +127,44 @@ def SRPPerturbation(t, vector, gravitational_parameter):
     SRP_perturbation = np.dot(- pSRP, direction_EarthSun)
 
     return SRP_perturbation
+
+
+def moonPerturbation(t, vector, gravitational_parameter):
+
+    position = Cartesian(vector[0], vector[1], vector[2], gravitational_parameter)
+    gravitational_parameter_moon = astroConstants(19)
+    radius_earth = astroConstants(23)
+
+    # Coefficients to compute the lunar position
+    A = np.array([0, 6.29, -1.27, 0.66, 0.21, -0.19, -0.11])
+    B = np.array([218.32, 135, 259.3, 235.7, 269.9, 357.5, 106.5])
+    C = np.array([481267.881, 477198.87, -413335.36, 890534.22, 954397.74, 35999.05, 966404.03])
+
+    D = np.array([0, 5.13, 0.28, -0.28, -0.17, 0, 0])
+    E = np.array([0, 93.3, 220.2, 318.3, 217.6, 0, 0])
+    F = np.array([0, 483202.03, 960400.89, 6003.15, -407332.21, 0, 0])
+
+    G = np.array([0.9508, 0.0518, 0.0095, 0.0078, 0.0028, 0, 0])
+    H = np.array([0, 135, 259.3, 253.7, 269.9, 0, 0])
+    K = np.array([0, 477198.87, -413335.38, 890534.22, 954397.70, 0, 0])
+
+    JD = t/(3600*24) # [days] Julian date
+    T0 = (JD - 2451545) / 36525 # number of Julian centuries since J2000 for the current Julian day JD
+    
+    epsilon = np.pi/180 * (23.439 - 0.0130042*T0) # [rad] obliquity of the ecliptic
+    lambdaM = np.pi/180 * (B[0] + C[0]*T0 + np.sum( A[1:8] * (np.sin(B[1:8]) + C[1:8]*T0) )) # [rad] time variation of Junar ecliptic longitude
+    delta = np.pi/180 * (np.sum( D[0:8] * (np.sin(E[0:8]) + F[0:8]*T0) )) # [rad] lunar ecliptic latitude
+
+    HP = np.pi/180 * (G[0] + np.sum( G[1:8] * (np.cos(H[1:8]) + K[1:8]*T0) )) # lunar horizontal parallax
+    
+    rM_norm = radius_earth/np.sin(HP) # [km] distance Earth-Moon
+    direction_EM = [np.cos(delta)*np.cos(lambdaM), 
+    np.cos(epsilon)*np.cos(delta)*np.sin(lambdaM) - np.sin(epsilon)*np.sin(delta),
+    np.sin(epsilon)*np.cos(delta)*np.sin(lambdaM) - np.cos(epsilon)*np.sin(delta)] # unitary vector Earth-Moon
+    rM = Cartesian(rM_norm*direction_EM[0], rM_norm*direction_EM[1], rM_norm*direction_EM[2], gravitational_parameter_moon)
+
+    rM_SC = Cartesian(rM.x - position.x, rM.y - position.y, rM.z - position.z, gravitational_parameter_moon)
+
+    moon_perturbation = gravitational_parameter_moon * ( rM_SC.vector()/(rM_SC.normalise()**3) - rM.vector()/(rM.normalise()**3) )
+
+    return moon_perturbation
