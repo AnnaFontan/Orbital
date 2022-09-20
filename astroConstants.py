@@ -1,5 +1,6 @@
 from xml.etree.ElementPath import find
 import numpy as np
+import math
 
 ''' astroConstants (from Horizon: 16.09.2022)
 This functions returns the astrodynamic-related physical constants * to be updated *
@@ -9,6 +10,7 @@ List of identifiers:
     2   Astronomical Unit (AU) [km]
     3   Speed of light in the vacuum [km/s]
     4   Standard free fall (the acceleration due to gravity on the Earth's surface at sea level) [m/s^2]
+    5   Solar constant = energy flux per unit time per unit area at 1 AU (Earth) [W/m**2]
 
     * Space for other constants *
 
@@ -57,6 +59,8 @@ def astroConstants(input):
         return 299792.458
     elif (input == 4):
         return 9.80665
+    elif (input == 5):
+        return 1367
 
     elif (input == 10):
         return 1.327124400181e11
@@ -174,3 +178,16 @@ def atmosphereDensityEarth(position):
         density = (density1 - density2)/(altitude1 - altitude2) * altitude + (density2*altitude1 - density1*altitude2)/(altitude1 - altitude2) # [kg/m**3]
 
     return density * 1e9 # [kg/km**3]
+
+
+''' date2J2000
+Permits to evaluate the Julian day number given the input date 
+(valid from year 1901 until year 2099)
+'''
+def date2J2000(year, month, day, hrs, min, sec):
+
+    J0 = 367*year - math.floor(7/4*(year + math.floor((month + 9)/12))) + math.floor(275/9*month) + day + 1721013.5 # [days]
+    UT = hrs + min/60 + sec/3600 # [hrs]
+    JD = J0 + UT/24 # [days]
+
+    return JD

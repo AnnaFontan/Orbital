@@ -16,22 +16,26 @@ if __name__ == '__main__':
     gravitational_parameter = astroConstants(13);  # [km***3/s**2] Earth planetary constant
     radius_earth = astroConstants(23)
 
-    keplerian_elements = KeplerianElements(radius_earth + 157, 0, 97.46*np.pi/180, 0, 0, 0, gravitational_parameter)
+    a0 = (6678 + 9440)/2
+    e0 = (-6678 + 9440)/(6678 + 9440)
+    i0 = 28 * np.pi/180
+    raan0 = 45 * np.pi/180
+    omega0 = 30 * np.pi/180
+    theta0 = 40 * np.pi/180
+    keplerian_elements = KeplerianElements(a0, e0, i0, raan0, omega0, theta0, gravitational_parameter)
     [position, velocity] = kep2car(keplerian_elements)
 
-    t0 = 0 # initial time
+    # Integration of the ordinary differential equation
+    t0 = 24*3600 * date2J2000(2020, 9, 3, 12, 0, 0)  # [s] launch date
+    t1 = t0 + 5*keplerian_elements.period # 1*24*3600 # 1.5 * period # [s]
+    delta_t = 1 # [s]
+    N = round( (t1 - delta_t - t0)/delta_t )
     y0 = np.concatenate((position.vector(), velocity.vector()), axis = 0) # initial state
     
-    # Integration of the ordinary differential equation
     solver = ode(perturbations) # noPerturbations
     solver.set_integrator('dop853')
     solver.set_f_params(gravitational_parameter)
     solver.set_initial_value(y0, t0)
-
-    t0 = 0 # [s]
-    t1 = 5 * keplerian_elements.period # 1*24*3600 # 1.5 * period # [s]
-    delta_t = 1 # [s]
-    N = round( (t1 - delta_t - t0)/delta_t )
 
     time = np.linspace(t0, t1, N)
     sol = y0
