@@ -50,6 +50,21 @@ def perturbations(t, vector, gravitational_parameter):
     return output
 
 
+def perturbations_norms(t, vector, gravitational_parameter):
+
+    J2_perturbation = J2Perturbation(t, vector, gravitational_parameter)
+    drag_perturbation = dragPerturbation(t, vector, gravitational_parameter)
+    SRP_perturbation = SRPPerturbation(t, vector, gravitational_parameter)
+    moon_perturbation = moonPerturbation(t, vector, gravitational_parameter)
+
+    J2_perturbation_norm = np.linalg.norm([J2_perturbation[0], J2_perturbation[1], J2_perturbation[2]])
+    drag_perturbation_norm = np.linalg.norm([drag_perturbation[0], drag_perturbation[1], drag_perturbation[2]])
+    SRP_perturbation_norm = np.linalg.norm([SRP_perturbation[0], SRP_perturbation[1], SRP_perturbation[2]])
+    moon_perturbation_norm = np.linalg.norm([moon_perturbation[0], moon_perturbation[1], moon_perturbation[2]])
+
+    return [J2_perturbation_norm, drag_perturbation_norm, SRP_perturbation_norm, moon_perturbation_norm]
+
+
 def J2Perturbation(t, vector, gravitational_parameter):
 
     J2 = astroConstants(33)
@@ -77,6 +92,7 @@ def dragPerturbation(t, vector, gravitational_parameter):
     relative_velocity_norm = np.linalg.norm([relative_velocity[0], relative_velocity[1], relative_velocity[2]])
 
     ballistic_coefficient = 2.2 * (0.4**2)/150 * 1e-6 # C_D*A/m [km**2/kg] 
+    
     atmospheric_density = atmosphereDensityEarth(position) # [km/km**3]
 
     drag_perturbation = np.dot(- 1/2 * atmospheric_density * relative_velocity_norm * ballistic_coefficient, relative_velocity)

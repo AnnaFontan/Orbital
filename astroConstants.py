@@ -140,7 +140,7 @@ def atmosphereDensityEarth(position):
     altitude = position.normalise() - radius_earth
     
     if (altitude < 0):
-        print('The athosperic density cannot be evaluated since the altitude is negative!')
+        print('The atmospheric density cannot be evaluated since the altitude is negative!')
         density = None
     elif (altitude > 1000): # [km]
         density = 0
@@ -175,9 +175,9 @@ def atmosphereDensityEarth(position):
         altitude2 = reference_altitude[index.max() + 1]
         altitude1 = reference_altitude[index.max()]
 
-        density = (density1 - density2)/(altitude1 - altitude2) * altitude + (density2*altitude1 - density1*altitude2)/(altitude1 - altitude2) # [kg/m**3]
+        density = ((density1 - density2)/(altitude1 - altitude2) * altitude + (density2*altitude1 - density1*altitude2)/(altitude1 - altitude2))*1e9 # [kg/km**3]
 
-    return density * 1e9 # [kg/km**3]
+    return density # [kg/km**3]
 
 
 ''' date2J2000
@@ -191,3 +191,29 @@ def date2J2000(year, month, day, hrs, min, sec):
     JD = J0 + UT/24 # [days]
 
     return JD
+
+
+def fraction2month_day(year, fraction):
+
+    number_days = np.floor(fraction)
+
+    m = np.array([0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]) # days of the months
+    if (np.abs(2024 - year) % 4 == 0): # leap year
+        m[1] = 29
+
+    for cont in range(1, m.size):
+        m[cont] = m[cont] + m[cont-1]
+    
+    index = np.array(np.where(m < number_days))
+
+    month = index.max() + 1
+    day = number_days - m[(month - 1)]
+
+    hrs = np.floor( (fraction - number_days)*24 )
+    min = np.floor( ((fraction - number_days)*24 - hrs)*60 )
+    sec = (((fraction - number_days)*24 - hrs)*60 - min)*60
+
+    return [year, month, day, hrs, min, sec]
+
+
+    

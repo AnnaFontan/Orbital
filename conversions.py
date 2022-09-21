@@ -1,3 +1,4 @@
+from turtle import right
 import numpy as np
 from classes import *
 from reference_frames import *
@@ -72,3 +73,26 @@ def car2kep(position, velocity):
     keplerian_elements = KeplerianElements(a, e, i, raan, omega, theta, position.mu)
 
     return keplerian_elements
+
+
+def position2ra_dec(position):
+
+    # Direction cosines of r
+    l = position.x/position.normalise()
+    m = position.y/position.normalise()
+    n = position.z/position.normalise()
+
+    declination = np.arcsin(n)
+
+    if (m > 0):
+        right_ascension = np.arccos(l/np.cos(declination))
+    else:
+        right_ascension = 2*np.pi - np.arccos(l/np.cos(declination))
+
+    right_ascension = 180/np.pi * right_ascension
+    declination = 180/np.pi * declination
+
+    if (right_ascension > 180):
+        right_ascension = right_ascension - 360
+
+    return declination, right_ascension

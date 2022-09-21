@@ -46,4 +46,3 @@ def pf2ge(keplerian_elements): # perifocal reference frames to geocentric equato
     R = np.matmul(R3omega, R1i) # rotation matrix
     R = np.linalg.inv(np.matmul(R, R3raan)) # rotation matrix
     return R
-
