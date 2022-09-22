@@ -7,11 +7,10 @@ variable names : this_is_train_case
 import numpy as np
 
 class Cartesian:
-    def __init__(self, x, y, z, mu):
+    def __init__(self, x, y, z):
         self.x = x
         self.y = y
         self.z = z
-        self.mu = mu
 
     def vector(self):
         return [self.x, self.y, self.z]

@@ -10,7 +10,7 @@ List of identifiers:
     2   Astronomical Unit (AU) [km]
     3   Speed of light in the vacuum [km/s]
     4   Standard free fall (the acceleration due to gravity on the Earth's surface at sea level) [m/s^2]
-    5   Solar constant = energy flux per unit time per unit area at 1 AU (Earth) [W/m**2]
+    5   Solar constant = energy flux per unit time per unit area at 1 AU (Earth) [W/m**2 = kg/s**3]
 
     * Space for other constants *
 

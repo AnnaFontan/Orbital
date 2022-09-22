@@ -2,6 +2,7 @@ from turtle import right
 import numpy as np
 from classes import *
 from reference_frames import *
+from astroConstants import *
 
 ''' kep2car:
 Conversion function from keplerian to cartesian elements.
@@ -19,11 +20,11 @@ def kep2car(keplerian_elements):
     [position_pf, velocity_pf] = perifocalFrame(keplerian_elements)
     R = pf2ge(keplerian_elements) # rotation matrix
 
-    position_ge = np.matmul(R, position_pf)
-    velocity_ge = np.matmul(R, velocity_pf)
+    position_ge = R @ position_pf
+    velocity_ge = R @ velocity_pf
 
-    position = Cartesian(position_ge[0], position_ge[1], position_ge[2], keplerian_elements.mu)
-    velocity = Cartesian(velocity_ge[0], velocity_ge[1], velocity_ge[2], keplerian_elements.mu)
+    position = Cartesian(position_ge[0], position_ge[1], position_ge[2])
+    velocity = Cartesian(velocity_ge[0], velocity_ge[1], velocity_ge[2])
 
     return position, velocity
 
@@ -38,14 +39,15 @@ Output:
 '''
 def car2kep(position, velocity): 
     
+    gravitational_parameter = astroConstants(13)
     angular_momentum_vector = np.cross(position.vector(), velocity.vector())
     angular_momentum_norm = np.linalg.norm(angular_momentum_vector)
 
-    energy = 0.5 * (velocity.normalise()**2) - position.mu/position.normalise()
+    energy = 0.5 * (velocity.normalise()**2) - gravitational_parameter/position.normalise()
     
-    a = - position.mu/(2*energy)
+    a = - gravitational_parameter/(2*energy)
     
-    e_vector = np.cross(velocity.vector(), angular_momentum_vector)/position.mu - position.vector()/position.normalise()
+    e_vector = np.cross(velocity.vector(), angular_momentum_vector)/gravitational_parameter - position.vector()/position.normalise()
     e = np.linalg.norm(e_vector)
 
     i = np.arccos(angular_momentum_vector[2]/angular_momentum_norm)
@@ -70,7 +72,7 @@ def car2kep(position, velocity):
     else:
         theta = 2*np.pi - np.arccos(np.dot(e_vector, position.vector())/(e*position.normalise()))
 
-    keplerian_elements = KeplerianElements(a, e, i, raan, omega, theta, position.mu)
+    keplerian_elements = KeplerianElements(a, e, i, raan, omega, theta, gravitational_parameter)
 
     return keplerian_elements
 
