@@ -46,3 +46,18 @@ def pf2ge(keplerian_elements): # perifocal reference frames to geocentric equato
     R = np.matmul(R3omega, R1i) # rotation matrix
     R = np.linalg.inv(np.matmul(R, R3raan)) # rotation matrix
     return R
+
+
+def equinoctialFrame(X):
+
+    A = 1 / (1 + X[3]**2 + X[4]**2)
+
+    f_hat = np.dot(A, [1 - X[3]**2 + X[4]**2, 2*X[3]*X[4], -2*X[3]*X[4]])
+    g_hat = np.dot(A, [2*X[3]*X[4], 1 + X[3]**2 - X[4]**2, 2*X[4]])
+    w_hat = np.dot(A, [2*X[3], -2*X[4], 1 - X[3]**2 - X[4]**2])
+
+    print([[f_hat], [g_hat], [w_hat]])
+    R = np.transpose([[f_hat], [g_hat], [w_hat]])
+    print(R)
+
+    return R
